@@ -1,4 +1,6 @@
 from svg.path import parse_path, Path, Line, QuadraticBezier
+
+import arduinosniffer
 import xml.etree.ElementTree as ET
 from serial import Serial
 from time import sleep
@@ -6,11 +8,23 @@ from time import sleep
 RX_BUFFER_SIZE = 128
 
 def grbl_init():
-    s = Serial('/dev/tty.usbmodem1411', 9600)
-    s.write("\r\r")
-    sleep(2)
-    s.flushInput()
-    return s
+    try:
+        arduinoName = arduinosniffer.findArduinoName()
+        s = Serial(arduinoName, 9600)
+        s.write("\r\r")
+        sleep(2)
+        s.flushInput()
+        return s
+    except ConnectionError as e:
+        print "An error has occured.\n Check the arduino connection and the arduino.\n"
+
+
+#def grbl_init():
+#    s = Serial('/dev/tty.usbmodem1411', 9600)
+#    s.write("\r\r")
+#    sleep(2)
+#    s.flushInput()
+#    return s
 
 def grbl_send_gcode(serial, gcode):
     buffered_command_sizes = []
@@ -69,15 +83,15 @@ def gcodify(paths, scale=1+1j, offset=0):
     return (command for path in paths for command in gcodify_path(path, scale, offset))
 
 
-svg = ET.parse('img/tricircle.svg')
-groups = svg.findall('{http://www.w3.org/2000/svg}g')
-path_strings = (path.attrib['d'] for group in groups for path in group.findall('{http://www.w3.org/2000/svg}path'))
+#svg = ET.parse('img/tricircle.svg')
+#groups = svg.findall('{http://www.w3.org/2000/svg}g')
+#path_strings = (path.attrib['d'] for group in groups for path in group.findall('{http://www.w3.org/2000/svg}path'))
 
-paths = list(parse_path(path_string) for path_string in path_strings)
+#paths = list(parse_path(path_string) for path_string in path_strings)
 
-min_point, max_point = bounding_box(paths)
-size = max_point - min_point
-max_dimension = max(size.real, size.imag)
-desired_dimension = 250.0
-scale = desired_dimension / max_dimension
-gcode = list(gcodify(paths, scale + scale * 1j, -1 * min_point))
+#min_point, max_point = bounding_box(paths)
+#size = max_point - min_point
+#max_dimension = max(size.real, size.imag)
+#desired_dimension = 250.0
+#scale = desired_dimension / max_dimension
+#gcode = list(gcodify(paths, scale + scale * 1j, -1 * min_point))
