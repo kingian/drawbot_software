@@ -2,6 +2,12 @@
 import os
 import fnmatch
 
+class ConnectionError(Exception):
+    def __init__(self,value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 # Since the usb serial connection seems to show different
 # for each computer this sniffer method should find it on
 # most OS X machines
