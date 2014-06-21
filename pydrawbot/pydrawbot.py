@@ -1,5 +1,6 @@
 from svg.path import parse_path, Path, Line, QuadraticBezier
 import xml.etree.ElementTree as ET
+
 from serial import Serial
 from time import sleep
 
@@ -57,7 +58,7 @@ def gcode_move_to_point(point, scale=1+1j, offset=0):
                          (point.imag + offset.imag) * scale.imag)
 
 def gcodify_path(path, scale=1+1j, offset=0):
-    steps = int(round(path.length() / 100) + 1)
+    steps = int(round(path.length() / 2 * min(scale.imag, scale.real)) + 1)
     points = segments(steps, path)
     return [
         gcode_pen_up(),
@@ -69,9 +70,9 @@ def gcodify(paths, scale=1+1j, offset=0):
     return (command for path in paths for command in gcodify_path(path, scale, offset))
 
 
-svg = ET.parse('img/tricircle.svg')
-groups = svg.findall('{http://www.w3.org/2000/svg}g')
-path_strings = (path.attrib['d'] for group in groups for path in group.findall('{http://www.w3.org/2000/svg}path'))
+svg = ET.parse('img/optimized_chicken.svg')
+paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
+path_strings = (path.attrib['d'] for path in paths)
 
 paths = list(parse_path(path_string) for path_string in path_strings)
 
