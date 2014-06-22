@@ -1,7 +1,11 @@
-from svg.path import parse_path, Path, Line, QuadraticBezier
+from grbl import Grbl
+from ConfigParser import ConfigParser
+
+import logging
+logging.basicConfig(level='DEBUG')
+log = logging.getLogger('pydrawbot')
 
 import arduinosniffer
-import xml.etree.ElementTree as ET
 
 from serial import Serial
 from time import sleep
@@ -41,64 +45,16 @@ def grbl_send_gcode(serial, gcode):
         serial.write(command_to_send + "\r")
         buffered_command_sizes.append(len(command_to_send) + 1)
 
-def min_max_points(points):
-    min_point = max_point = points[0]
-    for point in points[1:]:
-        min_point = min(min_point.real, point.real) + min(min_point.imag, point.imag) * 1j
-        max_point = max(max_point.real, point.real) + max(max_point.imag, point.imag) * 1j
-    return min_point, max_point
+config = ConfigParser()
+config.read('drawbot.ini')
 
-def segments(n, path):
-    return [path.point(float(t) / n) for t in range(0, n)]
+if config.getboolean('grbl', 'sniff_arduino'):
+    serial_device_name = arduinosniffer.findArduinoName()
+    log.info('autodetected arduino at {}'.format(serial_device_name))
+else:
+    serial_device_name = config.get('grbl', 'serial_device_name')
 
-def path_bounds(path):
-    steps = 100
-    return min_max_points(segments(steps, path))
+with open('chicken.gcode', 'r') as f:
+    gcode = f.read()
 
-def bounding_box(paths):
-    return min_max_points([point for path in paths for point in path_bounds(path)])
-
-def gcode_move_to(x, y):
-    return "G1 X{} Y{}".format(round(x, 5), round(y, 5))
-
-def gcode_pen_up():
-    return "G1 Z{}".format(0)
-
-def gcode_pen_down():
-    return "G1 Z{}".format(15)
-
-def gcode_move_to_point(point, scale=1+1j, offset=0):
-    return gcode_move_to((point.real + offset.real) * scale.real,
-                         (point.imag + offset.imag) * scale.imag)
-
-def gcodify_path(path, scale=1+1j, offset=0):
-    steps = int(round(path.length() / 2 * min(scale.imag, scale.real)) + 1)
-    points = segments(steps, path)
-    return [
-        gcode_pen_up(),
-        gcode_move_to_point(points[0], scale, offset),
-        gcode_pen_down(),
-    ] + [gcode_move_to_point(point, scale, offset) for point in points]
-
-def gcodify(paths, scale=1+1j, offset=0):
-    return (command for path in paths for command in gcodify_path(path, scale, offset))
-
-
-<<<<<<< HEAD:pydrawbot.py
-#svg = ET.parse('img/tricircle.svg')
-#groups = svg.findall('{http://www.w3.org/2000/svg}g')
-#path_strings = (path.attrib['d'] for group in groups for path in group.findall('{http://www.w3.org/2000/svg}path'))
-=======
-svg = ET.parse('img/optimized_chicken.svg')
-paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
-path_strings = (path.attrib['d'] for path in paths)
->>>>>>> 2d280ef163ec0727655daac35abe2b25dcdd9534:pydrawbot/pydrawbot.py
-
-#paths = list(parse_path(path_string) for path_string in path_strings)
-
-#min_point, max_point = bounding_box(paths)
-#size = max_point - min_point
-#max_dimension = max(size.real, size.imag)
-#desired_dimension = 250.0
-#scale = desired_dimension / max_dimension
-#gcode = list(gcodify(paths, scale + scale * 1j, -1 * min_point))
+grbl = Grbl(serial_device_name)
