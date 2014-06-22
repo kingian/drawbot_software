@@ -1,3 +1,10 @@
+from grbl import Grbl
+from ConfigParser import ConfigParser
+
+import logging
+logging.basicConfig(level='DEBUG')
+log = logging.getLogger('pydrawbot')
+
 from svg.path import parse_path, Path, Line, QuadraticBezier
 
 import arduinosniffer
@@ -83,22 +90,28 @@ def gcodify_path(path, scale=1+1j, offset=0):
 def gcodify(paths, scale=1+1j, offset=0):
     return (command for path in paths for command in gcodify_path(path, scale, offset))
 
+config = ConfigParser()
+config.read('drawbot.ini')
 
-<<<<<<< HEAD:pydrawbot.py
-#svg = ET.parse('img/tricircle.svg')
-#groups = svg.findall('{http://www.w3.org/2000/svg}g')
-#path_strings = (path.attrib['d'] for group in groups for path in group.findall('{http://www.w3.org/2000/svg}path'))
-=======
-svg = ET.parse('img/optimized_chicken.svg')
-paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
-path_strings = (path.attrib['d'] for path in paths)
->>>>>>> 2d280ef163ec0727655daac35abe2b25dcdd9534:pydrawbot/pydrawbot.py
+if config.getboolean('svg', 'build_gcode'):
+    svg = ET.parse(config.get('svg', 'file'))
+    svg_tag = svg.getroot()
+    paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
+    path_strings = (path.attrib['d'] for path in paths)
 
-#paths = list(parse_path(path_string) for path_string in path_strings)
+    desired_size = config.getfloat('svg', 'draw_size')
+    size = float(svg_tag.attrib['width']) + float(svg_tag.attrib['height']) * 1j
+    max_dimension = max(size.real, size.imag)
+    scale = desired_size / max_dimension
+    gcode = list(gcodify(paths, scale + scale * 1j, -0.5 * size))
 
-#min_point, max_point = bounding_box(paths)
-#size = max_point - min_point
-#max_dimension = max(size.real, size.imag)
-#desired_dimension = 250.0
-#scale = desired_dimension / max_dimension
-#gcode = list(gcodify(paths, scale + scale * 1j, -1 * min_point))
+if config.getboolean('grbl', 'sniff_arduino'):
+    serial_device_name = arduinosniffer.findArduinoName()
+    log.info('autodetected arduino at {}'.format(serial_device_name))
+else:
+    serial_device_name = config.get('grbl', 'serial_device_name')
+
+with open('chicken.gcode', 'r') as f:
+    gcode = f.read()
+
+grbl = Grbl(serial_device_name)
