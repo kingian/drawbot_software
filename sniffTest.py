@@ -3,8 +3,8 @@
 
 import arduinosniffer
 
-import pydrawbot
+import pydrawbot_ians_branch
 
 print arduinosniffer.findArduinoName()
 
-pydrawbot.grbl_init()
+pydrawbot_ians_branch.grbl_init()
