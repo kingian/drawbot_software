@@ -80,11 +80,11 @@ class Drawbot(Grbl):
             raise Exception("can't execute script while jogging")
         Grbl.queue(self, script)
 
-    def _gcode_move_to(self, position):
+    def _gcode_machine_position_move_to(self, position):
         "Generate command string to move to given XY position. Specifying None for a position skips that axis."
         if not any(p != None for p in position):
             return ""
-        command = "G1"
+        command = "G1 G53 "
         if position[0] != None:
             command += "X{}".format(position[0])
         if position[1] != None:
@@ -120,7 +120,7 @@ class Drawbot(Grbl):
                 # ready for a new move command
                 if self.jog_direction:
                     # move to the edge of the workspace in the jog direction
-                    command = self._gcode_move_to(self._jog_target(self.jog_direction))
+                    command = self._gcode_machine_position_move_to(self._jog_target(self.jog_direction))
                     if command:
-                        self._execute("M30\r" + command)
+                        self._execute(command)
                 self.last_jog_direction = self.jog_direction
