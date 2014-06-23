@@ -24,7 +24,7 @@ def getSymbol(key):
     else:
         symbolLibrary.update({key:symbolList[symbolIndex]})
         return symbolLibrary[key]
-        symbolIndex++
+        symbolIndex += 1
 
 
 
