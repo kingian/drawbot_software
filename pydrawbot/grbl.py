@@ -11,10 +11,10 @@ SERIAL_READ_TIMEOUT = 0.1 # seconds
 SERIAL_LINE_ENDING = "\r"
 GRBL_RX_BUFFER_SIZE = 128 # characters
 BAUD = 9600
-STATUS_POLLING_PERIOD = 5
+STATUS_POLLING_PERIOD = 0.1
 
 class Grbl:
-    def __init__(self, serial_device_path):
+    def __init__(self, serial_device_path=None):
         log.debug('init with path "{}"'.format(serial_device_path))
         self.serial_device_path = serial_device_path
         self.serial_thread = None
@@ -25,20 +25,22 @@ class Grbl:
         self.idle = Event()
         self.connected = Event()
 
-    def _process_serial_io(self):
+    def _process_serial_io(self, serial_port):
         log = logging.getLogger('grbl.serial')
-        log.info('connecting to: {}'.format(self.serial_device_path))
-        serial_port = Serial(self.serial_device_path, BAUD, timeout=SERIAL_READ_TIMEOUT)
-
+        self.send_queue.queue.clear()
+        self.priority_send_queue.queue.clear()
         grbl_buffered_commands = []
         grbl_buffered_command_sizes = []
         command_to_send = None
         priority_command_to_send = None
 
         def pop_command(response, log_method=log.debug):
-            log_method('{} response: {}'.format(grbl_buffered_commands[0].__repr__(), response))
-            del grbl_buffered_commands[0]
-            del grbl_buffered_command_sizes[0]
+            if not grbl_buffered_commands:
+                log.warn('tried to pop an empty grbl buffer')
+            else:
+                log_method('{} response: {}'.format(grbl_buffered_commands[0].__repr__(), response))
+                del grbl_buffered_commands[0]
+                del grbl_buffered_command_sizes[0]
 
         def fetch_queued_command(queue, queue_name):
             try:
@@ -67,10 +69,14 @@ class Grbl:
                 elif response == 'ok':
                     pop_command(response)
                 elif response[0] == '<':
-                    self._state, mpos, wpos = re.match(r'^<(\w+),MPos:([\-\d.,]+),WPos:([\-\d.,]+)>$', response).groups()
-                    self._machine_position = tuple(float(n) for n in mpos.split(','))
-                    self._work_position = tuple(float(n) for n in wpos.split(','))
-                    self._status_update()
+                    match = re.match(r'^<(\w+),MPos:([\-\d.,]+),WPos:([\-\d.,]+)>$', response)
+                    if not match:
+                        log.warn('invalid status string: {}'.format(response))
+                    else:
+                        self._state, mpos, wpos = match.groups()
+                        self._machine_position = tuple(float(n) for n in mpos.split(','))
+                        self._work_position = tuple(float(n) for n in wpos.split(','))
+                        self._status_update()
 
         def can_send(command_to_send):
             return command_to_send and sum(grbl_buffered_command_sizes) + len(command_to_send) <= GRBL_RX_BUFFER_SIZE
@@ -96,6 +102,12 @@ class Grbl:
         # 6. short sleep to be a good thread neighbor
         while not self.disconnecting.is_set():
             if priority_command_to_send:
+                if priority_command_to_send.strip() == "\x18":
+                    self.send_queue.queue.clear()
+                    self.priority_send_queue.queue.clear()
+                    grbl_buffered_commands = []
+                    grbl_buffered_command_sizes = []
+                    command_to_send = None
                 send_command(priority_command_to_send)
                 priority_command_to_send = None
             elif not priority_command_to_send and not self.priority_send_queue.empty():
@@ -114,16 +126,23 @@ class Grbl:
         serial_port.close()
         log.info('disconnected')
 
-    def connect(self):
+    def connect(self, path=None):
         if self.serial_thread and self.serial_thread.is_alive():
             warn('serial port already connected. not trying to reopen')
         else:
+            if not path:
+                if not self.serial_device_path:
+                    raise Exception('must specify path in init or connect call')
+                path = self.serial_device_path
+            log.info('connecting to: {}'.format(path))
+            serial_port = Serial(path, BAUD, timeout=SERIAL_READ_TIMEOUT)
+            self.serial_device_path = path
             log.debug('starting serial io thread')
             self.send_queue = Queue()
             self.priority_send_queue = Queue()
             self.disconnecting.clear()
             self.idle.clear()
-            self.serial_thread = Thread(target=self._process_serial_io, name='grbl-serial')
+            self.serial_thread = Thread(target=self._process_serial_io, name='grbl-serial', args=(serial_port,))
             self.serial_thread.daemon = True
             self.serial_thread.start()
             self._start_polling_status()
@@ -159,6 +178,10 @@ class Grbl:
 
     def _get_status(self):
         self._execute('?')
+
+    def reset(self):
+        log.info('resetting')
+        self._execute("\x18")
 
     def hold(self):
         log.info('holding feed')
