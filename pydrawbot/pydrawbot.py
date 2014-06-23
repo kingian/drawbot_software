@@ -1,8 +1,9 @@
 from grbl import Grbl
 from ConfigParser import ConfigParser
+from math import copysign
 
 import logging
-logging.basicConfig(level='DEBUG')
+logging.basicConfig(level='INFO')
 log = logging.getLogger('pydrawbot')
 
 import arduinosniffer
@@ -54,7 +55,72 @@ if config.getboolean('grbl', 'sniff_arduino'):
 else:
     serial_device_name = config.get('grbl', 'serial_device_name')
 
-with open('chicken.gcode', 'r') as f:
-    gcode = f.read()
+class Drawbot(Grbl):
+    def __init__(self, serial_device_name):
+        Grbl.__init__(self, serial_device_name)
+        self.jog_direction = None
+        self.last_jog_direction = None
+        self.x_limit = 300
+        self.y_limit = 300
 
-grbl = Grbl(serial_device_name)
+    def load_chicken(self):
+        with open('chicken.gcode', 'r') as f:
+            self.chicken = f.read()
+
+    def jog(self, direction):
+        if not self.jog_direction and not self.is_idle():
+            raise Exception("can't start jogging while moving")
+        if direction[0] == 0 and direction[1] == 0:
+            self.jog_direction = None
+        else:
+            self.jog_direction = direction
+
+    def queue(self, script):
+        if self.jog_direction:
+            raise Exception("can't execute script while jogging")
+        Grbl.queue(self, script)
+
+    def _gcode_move_to(self, position):
+        "Generate command string to move to given XY position. Specifying None for a position skips that axis."
+        if not any(p != None for p in position):
+            return ""
+        command = "G1"
+        if position[0] != None:
+            command += "X{}".format(position[0])
+        if position[1] != None:
+            command += "Y{}".format(position[1])
+        return command
+
+    def _jog_target(self, jog_direction):
+        x_target = [None, self.x_limit, 0][jog_direction[0]]
+        y_target = [None, self.y_limit, 0][jog_direction[1]]
+        if x_target != None and y_target != None:
+            # the hard case where x and y are being jogged
+            # we have to adjust one of the targets
+            x_offset = x_target - self._machine_position[0]
+            y_offset = y_target - self._machine_position[1]
+            # we only do 45-degree moves, so the target is equidistant in both axes
+            # the target is limited by the shorter distance
+            if abs(y_offset) < abs(x_offset):
+                x_target = copysign(abs(y_offset), x_offset) + self._machine_position[0]
+            else:
+                y_target = copysign(abs(x_offset), y_offset) + self._machine_position[1]
+
+        return (x_target, y_target)
+
+    def _status_update(self):
+        Grbl._status_update(self)
+        if self.jog_direction != self.last_jog_direction:
+            # we're changing jog direction, we need to come to a stop first
+            if self._state == 'Run':
+                self.hold() # start stopping
+            elif self._state == 'Queue':
+                self.reset() # done stopping, clear the command queue
+            elif self._state == 'Idle':
+                # ready for a new move command
+                if self.jog_direction:
+                    # move to the edge of the workspace in the jog direction
+                    command = self._gcode_move_to(self._jog_target(self.jog_direction))
+                    if command:
+                        self._execute("M30\r" + command)
+                self.last_jog_direction = self.jog_direction
