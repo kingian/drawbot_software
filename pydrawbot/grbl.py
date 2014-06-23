@@ -14,7 +14,7 @@ BAUD = 9600
 STATUS_POLLING_PERIOD = 0.1
 
 class Grbl:
-    def __init__(self, serial_device_path):
+    def __init__(self, serial_device_path=None):
         log.debug('init with path "{}"'.format(serial_device_path))
         self.serial_device_path = serial_device_path
         self.serial_thread = None
@@ -25,11 +25,8 @@ class Grbl:
         self.idle = Event()
         self.connected = Event()
 
-    def _process_serial_io(self):
+    def _process_serial_io(self, serial_port):
         log = logging.getLogger('grbl.serial')
-        log.info('connecting to: {}'.format(self.serial_device_path))
-        serial_port = Serial(self.serial_device_path, BAUD, timeout=SERIAL_READ_TIMEOUT)
-
         self.send_queue.queue.clear()
         self.priority_send_queue.queue.clear()
         grbl_buffered_commands = []
@@ -129,17 +126,23 @@ class Grbl:
         serial_port.close()
         log.info('disconnected')
 
-    def connect(self):
+    def connect(self, path=None):
         if self.serial_thread and self.serial_thread.is_alive():
             warn('serial port already connected. not trying to reopen')
         else:
+            if not path:
+                if not self.serial_device_path:
+                    raise Exception('must specify path in init or connect call')
+                path = self.serial_device_path
+            log.info('connecting to: {}'.format(path))
+            serial_port = Serial(path, BAUD, timeout=SERIAL_READ_TIMEOUT)
+            self.serial_device_path = path
             log.debug('starting serial io thread')
-            # TODO: open serial port here
             self.send_queue = Queue()
             self.priority_send_queue = Queue()
             self.disconnecting.clear()
             self.idle.clear()
-            self.serial_thread = Thread(target=self._process_serial_io, name='grbl-serial')
+            self.serial_thread = Thread(target=self._process_serial_io, name='grbl-serial', args=(serial_port,))
             self.serial_thread.daemon = True
             self.serial_thread.start()
             self._start_polling_status()
