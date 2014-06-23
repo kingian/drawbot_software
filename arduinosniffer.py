@@ -16,4 +16,4 @@ def findArduinoName():
         if fnmatch.fnmatch(file, 'tty.usbmodem*'):
         # Debug line, since the usb bluetooth files seem to always be there
         #if fnmatch.fnmatch(file, 'tty.Blue*'):
-            return file
+            return '/dev/' + file
