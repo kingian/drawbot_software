@@ -3,6 +3,7 @@ import sys
 import pygame
 from pygame.locals import *
 from pydrawbot import *
+from time import sleep
 
 d = Drawbot(serial_device_name)
 d.connect()
@@ -53,5 +54,9 @@ while running:
     except Exception as e:
         print e
 
+    sleep(0.01)
     screen.fill((0, 0, 0))
     pygame.display.flip()
+
+d.queue('G1 X0 Y0 Z0')
+d.wait_for_idle()
