@@ -33,9 +33,13 @@ def gcode_pen_down():
 def gcode_move_to_point(point, scale=1+1j, offset=0):
     return gcode_move_to((point.real + offset.real) * scale.real,
                          (point.imag + offset.imag) * scale.imag)
-
+path_count = 0
+current_path_num = 0
 def gcodify_path(path, scale=1+1j, offset=0):
-    steps = int(round(path.length() / 2 * min(scale.imag, scale.real)) + 1)
+    global path_count, current_path_num
+    current_path_num += 1
+    sys.stderr.write("{}/{}\n".format(current_path_num, path_count))
+    steps = max(int(round(path.length() * 10 * min(scale.imag, scale.real))), 5)
     points = segments(steps, path)
     return [
         gcode_pen_up(),
@@ -44,16 +48,23 @@ def gcodify_path(path, scale=1+1j, offset=0):
     ] + [gcode_move_to_point(point, scale, offset) for point in points]
 
 def gcodify(paths, scale=1+1j, offset=0):
+    global path_count
+    path_count = len(paths)
     return (command for path in paths for command in gcodify_path(path, scale, offset))
 
 def build_gcode(filename, desired_size):
     svg = ET.parse(filename)
     svg_tag = svg.getroot()
     paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
-    svg_paths = (parse_path(path.attrib['d']) for path in paths)
+    svg_paths = list(parse_path(path.attrib['d']) for path in paths)
 
     desired_size = desired_size
-    size = float(svg_tag.attrib['width']) + float(svg_tag.attrib['height']) * 1j
+    try:
+        size = float(svg_tag.attrib['width']) + float(svg_tag.attrib['height']) * 1j
+    except Exception:
+        zx, zy, x, y = svg_tag.attrib['viewBox'].split()
+        size = float(x) + float(y) * 1j
+
     max_dimension = max(size.real, size.imag)
     scale = desired_size / max_dimension
     gcode = [preamble] + list(gcodify(svg_paths, scale + scale * 1j, -0.5 * size)) + [epilogue]
