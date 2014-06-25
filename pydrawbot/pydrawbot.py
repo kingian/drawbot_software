@@ -60,7 +60,7 @@ class Drawbot(Grbl):
         Grbl.__init__(self, serial_device_name)
         self.jog_direction = None
         self.last_jog_direction = None
-        self.margin 125
+        self.margin = 125
         self.x_limit = 700
         self.y_limit = 1500
         self._is_pen_down = False
@@ -86,7 +86,7 @@ class Drawbot(Grbl):
         return self._is_pen_down
 
     def draw(self, filename):
-        with open("gcode/{}".format(filename), 'r') as f:
+        with open("gcode/{}.gcode".format(filename), 'r') as f:
             gcode = f.read()
         self.queue(gcode)
 

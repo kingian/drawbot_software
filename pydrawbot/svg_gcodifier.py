@@ -35,7 +35,6 @@ def gcode_move_to_point(point, scale=1+1j, offset=0):
                          (point.imag + offset.imag) * scale.imag)
 
 def gcodify_path(path, scale=1+1j, offset=0):
-    print path
     steps = int(round(path.length() / 2 * min(scale.imag, scale.real)) + 1)
     points = segments(steps, path)
     return [

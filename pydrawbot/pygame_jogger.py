@@ -30,15 +30,15 @@ while running:
     keys = pygame.key.get_pressed()
 
     try:
-        if d.is_idle() or d.is_jogging():
+        if True: #d.is_idle() or d.is_jogging():
             x, y = 0, 0
             if (keys[UP] or keys[K_UP]):
                 x = -1
-            if (keys[DOWN] or keys[K_DOWN]):
+            elif (keys[DOWN] or keys[K_DOWN]):
                 x = 1
             if (keys[LEFT] or keys[K_LEFT]):
                 y = 1
-            if (keys[RIGHT] or keys[K_RIGHT]):
+            elif (keys[RIGHT] or keys[K_RIGHT]):
                 y = -1
             d.jog((x, y))
 
