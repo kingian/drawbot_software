@@ -11,7 +11,7 @@ SERIAL_READ_TIMEOUT = 0.1 # seconds
 SERIAL_LINE_ENDING = "\r"
 GRBL_RX_BUFFER_SIZE = 128 # characters
 BAUD = 9600
-STATUS_POLLING_PERIOD = 0.1
+STATUS_POLLING_PERIOD = 0.2
 
 class Grbl:
     def __init__(self, serial_device_path=None):

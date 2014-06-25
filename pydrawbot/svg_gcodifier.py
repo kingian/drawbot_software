@@ -1,6 +1,9 @@
 from svg.path import parse_path, Path, Line, QuadraticBezier
 import xml.etree.ElementTree as ET
+import sys
 
+preamble = "G21 G90 G94 G92 X0 Y0 Z0"
+epilogue = "G0 Z0 M30"
 def min_max_points(points):
     min_point = max_point = points[0]
     for point in points[1:]:
@@ -32,6 +35,7 @@ def gcode_move_to_point(point, scale=1+1j, offset=0):
                          (point.imag + offset.imag) * scale.imag)
 
 def gcodify_path(path, scale=1+1j, offset=0):
+    print path
     steps = int(round(path.length() / 2 * min(scale.imag, scale.real)) + 1)
     points = segments(steps, path)
     return [
@@ -44,14 +48,17 @@ def gcodify(paths, scale=1+1j, offset=0):
     return (command for path in paths for command in gcodify_path(path, scale, offset))
 
 def build_gcode(filename, desired_size):
-    svg = ET.parse(config.get('svg', 'file'))
+    svg = ET.parse(filename)
     svg_tag = svg.getroot()
     paths = svg.findall('.//{http://www.w3.org/2000/svg}path')
-    path_strings = (path.attrib['d'] for path in paths)
+    svg_paths = (parse_path(path.attrib['d']) for path in paths)
 
-    desired_size = config.getfloat('svg', 'draw_size')
+    desired_size = desired_size
     size = float(svg_tag.attrib['width']) + float(svg_tag.attrib['height']) * 1j
     max_dimension = max(size.real, size.imag)
     scale = desired_size / max_dimension
-    gcode = list(gcodify(paths, scale + scale * 1j, -0.5 * size))
+    gcode = [preamble] + list(gcodify(svg_paths, scale + scale * 1j, -0.5 * size)) + [epilogue]
     return gcode
+
+if __name__ == '__main__':
+    print "\n".join(build_gcode(sys.argv[1], 100))

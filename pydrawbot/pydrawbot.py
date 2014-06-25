@@ -60,8 +60,10 @@ class Drawbot(Grbl):
         Grbl.__init__(self, serial_device_name)
         self.jog_direction = None
         self.last_jog_direction = None
-        self.x_limit = 300
-        self.y_limit = 300
+        self.margin 125
+        self.x_limit = 700
+        self.y_limit = 1500
+        self._is_pen_down = False
 
     def load_chicken(self):
         with open('chicken.gcode', 'r') as f:
@@ -80,6 +82,14 @@ class Drawbot(Grbl):
             raise Exception("can't execute script while jogging")
         Grbl.queue(self, script)
 
+    def is_pen_down(self):
+        return self._is_pen_down
+
+    def draw(self, filename):
+        with open("gcode/{}".format(filename), 'r') as f:
+            gcode = f.read()
+        self.queue(gcode)
+
     def _gcode_machine_position_move_to(self, position):
         "Generate command string to move to given XY position. Specifying None for a position skips that axis."
         if not any(p != None for p in position):
@@ -92,8 +102,8 @@ class Drawbot(Grbl):
         return command
 
     def _jog_target(self, jog_direction):
-        x_target = [None, self.x_limit, 0][jog_direction[0]]
-        y_target = [None, self.y_limit, 0][jog_direction[1]]
+        x_target = [None, self.x_limit - self.margin, self.margin][jog_direction[0]]
+        y_target = [None, self.y_limit - self.margin, self.margin][jog_direction[1]]
         if x_target != None and y_target != None:
             # the hard case where x and y are being jogged
             # we have to adjust one of the targets
