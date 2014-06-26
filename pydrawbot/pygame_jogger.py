@@ -73,6 +73,9 @@ while running:
                 else:
                     d.pen_up()
 
+            if keys[270]:
+                d.draw('beard')
+
             if keys[296]:
                 d.draw('simple_chicken')
         elif event.type == pygame.KEYDOWN and event.key == K_SPACE and serial_device_name:
