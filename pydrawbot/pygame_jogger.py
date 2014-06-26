@@ -57,13 +57,13 @@ while running:
             if d.is_idle() or d.is_jogging():
                 x, y = 0, 0
                 if (keys[UP] or keys[K_UP]):
-                    x = -1
-                elif (keys[DOWN] or keys[K_DOWN]):
-                    x = 1
-                if (keys[LEFT] or keys[K_LEFT]):
                     y = 1
-                elif (keys[RIGHT] or keys[K_RIGHT]):
+                elif (keys[DOWN] or keys[K_DOWN]):
                     y = -1
+                if (keys[LEFT] or keys[K_LEFT]):
+                    x = -1
+                elif (keys[RIGHT] or keys[K_RIGHT]):
+                    x = 1
                 d.jog((x, y))
 
             if event.type == pygame.KEYDOWN and (event.key == 92 or event.key == K_SPACE):
