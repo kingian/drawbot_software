@@ -69,9 +69,9 @@ while running:
             if event.type == pygame.KEYDOWN and (event.key == 92 or event.key == K_SPACE):
                 print event.key
                 if d.is_pen_down():
-                    d.pen_down()
-                else:
                     d.pen_up()
+                else:
+                    d.pen_down()
 
             if keys[270]:
                 d.draw('beard')

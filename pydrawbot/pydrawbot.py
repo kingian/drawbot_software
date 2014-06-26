@@ -93,17 +93,18 @@ class Drawbot(Grbl):
     def pen_down(self):
         if not self.ready_for_action():
             raise Exception("can't draw while moving")
-        self.queue('G1 Z15')
+        self.queue('G1 G53 Z15')
         sleep(1)
         self._is_pen_down = True
         self.wait_for_idle()
 
     def pen_up(self):
-        if self._is_pen_down:
-            self.queue('G1 Z0')
-            sleep(1)
-            self._is_pen_down = False
-            self.wait_for_idle()
+        if not self.ready_for_action():
+            raise Exception("can't draw while moving")
+        self.queue('G1 G53 Z0')
+        sleep(1)
+        self._is_pen_down = False
+        self.wait_for_idle()
 
     def ready_for_action(self):
         return not self.is_jogging() and self.is_idle() and self.send_queue.empty()
