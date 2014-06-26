@@ -106,7 +106,7 @@ class Drawbot(Grbl):
             self.wait_for_idle()
 
     def ready_for_action(self):
-        return not self.is_jogging() and self.is_idle()
+        return not self.is_jogging() and self.is_idle() and self.send_queue.empty()
 
     def is_jogging(self):
         return self.last_jog_direction or self.jog_direction
