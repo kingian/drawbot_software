@@ -49,14 +49,19 @@ def grbl_send_gcode(serial, gcode):
 config = ConfigParser()
 config.read('drawbot.ini')
 
+def sniff_arduino():
+    name = arduinosniffer.findArduinoName()
+    if name:
+        log.info('autodetected arduino at {}'.format(name))
+    return name
+
 if config.getboolean('grbl', 'sniff_arduino'):
-    serial_device_name = arduinosniffer.findArduinoName()
-    log.info('autodetected arduino at {}'.format(serial_device_name))
+    serial_device_name = sniff_arduino()
 else:
     serial_device_name = config.get('grbl', 'serial_device_name')
 
 class Drawbot(Grbl):
-    def __init__(self, serial_device_name):
+    def __init__(self, serial_device_name=None):
         Grbl.__init__(self, serial_device_name)
         self.jog_direction = None
         self.last_jog_direction = None
@@ -70,7 +75,7 @@ class Drawbot(Grbl):
             self.chicken = f.read()
 
     def jog(self, direction):
-        if not self.jog_direction and not self.is_idle():
+        if not self.is_jogging() and not self.is_idle():
             raise Exception("can't start jogging while moving")
         if direction[0] == 0 and direction[1] == 0:
             self.jog_direction = None
@@ -85,7 +90,30 @@ class Drawbot(Grbl):
     def is_pen_down(self):
         return self._is_pen_down
 
+    def pen_down(self):
+        if not self.ready_for_action():
+            raise Exception("can't draw while moving")
+        self.queue('G1 Z15')
+        sleep(1)
+        self._is_pen_down = True
+        self.wait_for_idle()
+
+    def pen_up(self):
+        if self._is_pen_down:
+            self.queue('G1 Z0')
+            sleep(1)
+            self._is_pen_down = False
+            self.wait_for_idle()
+
+    def ready_for_action(self):
+        return not self.is_jogging() and self.is_idle()
+
+    def is_jogging(self):
+        return self.last_jog_direction or self.jog_direction
+
     def draw(self, filename):
+        if not self.ready_for_action():
+            raise Exception("can't draw while moving")
         with open("gcode/{}.gcode".format(filename), 'r') as f:
             gcode = f.read()
         self.queue(gcode)
