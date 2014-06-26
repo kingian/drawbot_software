@@ -115,6 +115,8 @@ class Drawbot(Grbl):
     def draw(self, filename):
         if not self.ready_for_action():
             raise Exception("can't draw while moving")
+        if self._is_pen_down:
+            self.pen_up()
         with open("gcode/{}.gcode".format(filename), 'r') as f:
             gcode = f.read()
         self.queue(gcode)
