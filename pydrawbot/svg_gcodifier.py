@@ -22,10 +22,10 @@ def bounding_box(paths):
     return min_max_points([point for path in paths for point in path_bounds(path)])
 
 def gcode_move_to(x, y):
-    return "G1 X{} Y{}".format(round(x, 5), round(y, 5))
+    return "G1 X{} Y{}".format(round(x, 2), round(y, 2))
 
 def gcode_pen_up():
-    return "G1 Z{}".format(0)
+    return "G1 Z{}".format(10)
 
 def gcode_pen_down():
     return "G1 Z{}".format(15)
@@ -39,7 +39,7 @@ def gcodify_path(path, scale=1+1j, offset=0):
     global path_count, current_path_num
     current_path_num += 1
     sys.stderr.write("{}/{}\n".format(current_path_num, path_count))
-    steps = max(int(round(path.length() * 10 * min(scale.imag, scale.real))), 5)
+    steps = max(int(round(path.length() * min(scale.imag, scale.real))), 5)
     points = segments(steps, path)
     return [
         gcode_pen_up(),

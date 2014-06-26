@@ -24,6 +24,9 @@ class Grbl:
         self.disconnecting = Event()
         self.idle = Event()
         self.connected = Event()
+        self._machine_position = (0,0,0)
+        self._work_position = (0,0,0)
+        self._state = 'Init'
 
     def _process_serial_io(self, serial_port):
         log = logging.getLogger('grbl.serial')
@@ -127,7 +130,7 @@ class Grbl:
         log.info('disconnected')
 
     def connect(self, path=None):
-        if self.serial_thread and self.serial_thread.is_alive():
+        if self.is_connected():
             warn('serial port already connected. not trying to reopen')
         else:
             if not path:
@@ -148,7 +151,7 @@ class Grbl:
             self._start_polling_status()
 
     def _poll_status(self):
-        while self.serial_thread and self.serial_thread.is_alive():
+        while self.is_connected():
             self.connected.wait()
             self._get_status()
             sleep(STATUS_POLLING_PERIOD)
@@ -193,6 +196,12 @@ class Grbl:
 
     def is_idle(self):
         return self._state == 'Idle'
+
+    def is_running(self):
+        return self._state == 'Run' or self._state == 'Hold' or self._state == 'Queue'
+
+    def is_connected(self):
+        return self.serial_thread and self.serial_thread.is_alive()
 
     def wait_for_idle(self, timeout=None):
         log.debug('waiting for idle')
