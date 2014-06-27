@@ -58,11 +58,14 @@ class Savage::Path
     start_position = nil
     current_position = Point.new(0, 0)
     reflection = nil
+    pendown = false
     subpaths.map do |subpath|
       subpath.directions.map do |direction|
         reflection = nil unless direction.is_a?(CubicCurveTo) or direction.is_a?(QuadraticCurveTo)
+        pendown = !(direction.is_a? MoveTo)
         case direction
         when MoveTo
+          old_position = current_position.clone
           if direction.absolute?
             current_position = direction.target
             start_position = current_position
@@ -70,7 +73,11 @@ class Savage::Path
             current_position += direction.target
             start_position = current_position
           end
-          [PenUp, current_position]
+          if old_position.distance_to(current_position) < 3.0 * step_size
+            [current_position]
+          else
+            [PenUp, current_position]
+          end
         when LineTo
           if direction.absolute?
             current_position = direction.target
