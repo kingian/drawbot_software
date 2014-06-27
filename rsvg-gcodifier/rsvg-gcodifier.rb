@@ -134,10 +134,11 @@ def gcodify(svg_text, opts={})
   path_els = doc.search('path')
   paths = path_els.map {|el| Savage::Parser.parse el['d']}
   svg_el = doc.search('svg').first
+  x0, y0 = [0, 0]
   if viewbox = svg_el['viewBox']
-    x0, y0, x1, y1 = viewbox.split.map(&:to_f)
-    width = (x1 - x0).abs.to_f
-    height = (y1 - y0).abs.to_f
+    x0, y0, width, height = viewbox.split.map(&:to_f)
+    # width = (x1 - x0).abs.to_f
+    # height = (y1 - y0).abs.to_f
   else
     width = svg_el['width'].to_f
     height = svg_el['height'].to_f
@@ -152,7 +153,7 @@ def gcodify(svg_text, opts={})
   epilogue = ['G0 Z0 M30']
   gcodes = segments.map do |segment|
     if segment.is_a? Point
-      "G1 X#{(scale * (segment.x - 0.5 * width)).round(2)} Y#{(scale * (segment.y - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)}"
+      "G1 X#{(scale * ((segment.x - x0) - 0.5 * width)).round(2)} Y#{(scale * ((segment.y - y0) - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)}"
     elsif segment == PenDown
       unless pendown
         pendown = true
