@@ -162,7 +162,7 @@ def gcodify(svg_text, opts={})
     elsif segment == PenUp
       if pendown
         pendown = false
-        "G1 Z0"
+        "G1 Z5"
       end
     else
       raise segment.inspect
