@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 import sys
+import os
+from fnmatch import fnmatch
 import pygame
 from pygame.locals import *
 from pydrawbot import *
@@ -19,6 +21,14 @@ GRID = [
 ]
 
 STAMPS = list(id for row in GRID for id in row if not id == START)
+files = []
+for path in os.listdir(os.getcwd() + '/' + 'gcode'):
+    if fnmatch(path, '*.gcode'):
+        files.append(os.path.splitext(path)[0])
+
+key_files = {}
+for i, key in enumerate(STAMPS):
+    key_files[key] = files[i % len(files)]
 
 running = 1
 pygame.init()
@@ -73,11 +83,13 @@ while running:
                 else:
                     d.pen_down()
 
-            if keys[270]:
-                d.draw('beard')
+            if event.type == pygame.KEYDOWN and key_files.has_key(event.key):
+                d.draw(key_files[event.key])
 
-            if keys[296]:
-                d.draw('simple_chicken')
+            #if key_files[270]:
+            #    d.draw('beard')
+            #if keys[296]:
+            #    d.draw('simple_chicken')
         elif event.type == pygame.KEYDOWN and event.key == K_SPACE and serial_device_name:
             d.connect(serial_device_name)
         else:
