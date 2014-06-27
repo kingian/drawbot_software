@@ -188,8 +188,11 @@ end
 
 op.parse!(ARGV)
 
-ARGV.each do |infile|
-  outfile = File.join(OPTS[:output_directory], "#{File.basename(infile, '.*')}.gcode")
-  puts "#{infile} -> #{outfile}"
-  File.write(outfile, gcodify(File.read(infile), OPTS).join("\n"))
+ARGV.each do |arg|
+  Dir.glob(arg).each do |infile|
+    next unless File.file? infile
+    outfile = File.join(OPTS[:output_directory], "#{File.basename(infile, '.*')}.gcode")
+    puts "#{infile} -> #{outfile}"
+    File.write(outfile, gcodify(File.read(infile), OPTS).join("\n"))
+  end
 end
