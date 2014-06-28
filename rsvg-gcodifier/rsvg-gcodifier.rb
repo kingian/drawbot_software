@@ -140,6 +140,7 @@ def gcodify(svg_text, opts={})
   doc = Nokogiri.XML(svg_text)
   path_els = doc.search('path')
   paths = path_els.map {|el| Savage::Parser.parse el['d']}
+  line_els = doc.search('line')
   svg_el = doc.search('svg').first
   x0, y0 = [0, 0]
   if viewbox = svg_el['viewBox']
@@ -155,7 +156,9 @@ def gcodify(svg_text, opts={})
 
   pendown = false
   segments = paths.map{|p| p.to_line_segments(OPTS[:segment_length] / scale)}.flatten
-
+  segments += line_els.map do |el|
+    [PenUp, Point.new(el['x1'].to_f, el['y1'].to_f), PenDown, Point.new(el['x2'].to_f, el['y2'].to_f)]
+  end.flatten
   preamble = ['G21 G90 G94 G92 X0 Y0 Z0']
   epilogue = ['G0 Z0 M30']
   gcodes = segments.map do |segment|
