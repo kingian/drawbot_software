@@ -24,7 +24,10 @@ signal(SIGINT, handler)
 drawing = False
 position = [0.0,0.0]
 limit = [1400.0, 700.0]
-d.queue('g1z15')
+d.queue("G1 X{} Y{}".format(position[0], limit[1]))
+d.queue("G1 X{} Y{}".format(limit[0], limit[1]))
+d.queue("G1 X{} Y{}".format(limit[0], position[1]))
+d.queue("G1 X{} Y{}".format(position[0], position[1]))
 
 while not tried_quit:
   print "({} {})".format(position[0], position[1])
@@ -36,6 +39,10 @@ while not tried_quit:
   # right
   position[0] += random() * (limit[0] - position[0])
   d.queue("G1 X{} Y{}".format(position[0], position[1]))
+
+  if not drawing:
+    drawing = True
+    d.queue('G1 Z15')
 
   print "({} {})".format(position[0], position[1])
   # down
