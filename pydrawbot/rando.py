@@ -23,7 +23,7 @@ def handler(sig, frame):
 signal(SIGINT, handler)
 drawing = False
 position = [0.0, 0.0, 0.0]
-limit = [1400.0, 700.0, 20.0]
+limit = [1400.0, 700.0, 17.0]
 d.queue("G1 X{} Y{}".format(position[0], limit[1]))
 d.queue("G1 X{} Y{}".format(limit[0], limit[1]))
 d.queue("G1 X{} Y{}".format(limit[0], position[1]))
