@@ -9,9 +9,9 @@ import re
 log = logging.getLogger('grbl')
 SERIAL_READ_TIMEOUT = 0.1 # seconds
 SERIAL_LINE_ENDING = "\r"
-GRBL_RX_BUFFER_SIZE = 128 # characters
-BAUD = 9600
-STATUS_POLLING_PERIOD = 0.2
+GRBL_RX_BUFFER_SIZE = 64 # characters
+BAUD = 115200
+STATUS_POLLING_PERIOD = 1.0
 
 class Grbl:
     def __init__(self, serial_device_path=None):
@@ -62,6 +62,7 @@ class Grbl:
             serial_port.write(command_to_send)
             grbl_buffered_command_sizes.append(len(command_to_send))
             grbl_buffered_commands.append(command_to_send.strip())
+            #sleep(0.1)
 
         def read_response():
             response = serial_port.readline().strip()
@@ -113,6 +114,8 @@ class Grbl:
                     command_to_send = None
                 send_command(priority_command_to_send)
                 priority_command_to_send = None
+            elif serial_port.inWaiting():
+                read_response()
             elif not priority_command_to_send and not self.priority_send_queue.empty():
                 priority_command_to_send = fetch_queued_command(self.priority_send_queue, 'priority queue')
             elif not priority_command_to_send and can_send(command_to_send):
@@ -120,8 +123,6 @@ class Grbl:
                 command_to_send = None
             elif not command_to_send and not self.send_queue.empty():
                 command_to_send = fetch_queued_command(self.send_queue, 'queue')
-            elif serial_port.inWaiting():
-                read_response()
             else:
                 sleep(0.01)
         log.debug('disconnecting')
