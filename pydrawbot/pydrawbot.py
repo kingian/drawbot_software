@@ -66,7 +66,7 @@ class Drawbot(Grbl):
         self.jog_direction = None
         self.last_jog_direction = None
         self.margin = 125
-        self.x_limit = 1500 #700
+        self.x_limit = 700 #700
         self.y_limit = 700 #1500
         self._is_pen_down = False
 
