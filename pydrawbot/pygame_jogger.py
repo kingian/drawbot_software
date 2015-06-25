@@ -131,7 +131,7 @@ while running:
             #d.queue(settings)
             if center:
                 center = False
-                #d.queue("G1 X350 Y350 F10000")
+                d.queue("G1 X350 Y350 F10000")
             message("MPos:{}\nWPos:{}\nState:{}\nQsize={}".format(d._machine_position, d._work_position, d._state, d.send_queue.qsize()))
             if d.is_idle() or d.is_jogging():
                 x, y = 0, 0

@@ -153,26 +153,28 @@ def gcodify(svg_text, opts={})
   end
   max_dim = [width, height].max
   scale = OPTS[:size].to_f / max_dim
-
   pendown = false
   segments = paths.map{|p| p.to_line_segments(OPTS[:segment_length] / scale)}.flatten
   segments += line_els.map do |el|
     [PenUp, Point.new(el['x1'].to_f, el['y1'].to_f), PenDown, Point.new(el['x2'].to_f, el['y2'].to_f)]
   end.flatten
   preamble = ['G21 G90 G94 G92 X0 Y0 Z0']
-  epilogue = ['G0 Z0 M30']
+  #epilogue = ["G0 Z0 F#{OPTS[:speed]}M30"]
+  epilogue = ["M3"]
   gcodes = segments.map do |segment|
     if segment.is_a? Point
-      "G1 X#{(scale * ((segment.x - x0) - 0.5 * width)).round(2)} Y#{(scale * ((segment.y - y0) - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)}"
+      "G1 X#{(scale * ((segment.x - x0) - 0.5 * width) * -1).round(2)} Y#{(scale * ((segment.y - y0) - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)} F#{OPTS[:speed]}"
     elsif segment == PenDown
       unless pendown
         pendown = true
-        "G1 Z15"
+        #"G1 Z15 F#{OPTS[:speed]}"
+        "M4 G4 P0.25"
       end
     elsif segment == PenUp
       if pendown
         pendown = false
-        "G1 Z5"
+        #"G1 Z5 F#{OPTS[:speed]}"
+        "M3 G4 P0.25"
       end
     else
       raise segment.inspect
@@ -181,10 +183,12 @@ def gcodify(svg_text, opts={})
   preamble + gcodes + epilogue
 end
 
-OPTS = {size: 100.0, flip: true, segment_length: 1.5, output_directory: '.'}
+OPTS = {size: 100.0, speed: 40000.0, flip: true, segment_length: 1.5, output_directory: '.'}
 op = OptionParser.new do |x|
   x.banner = 'rsvg-gcodifier <options> <files>'
   x.separator ''
+
+  x.on("-v", "--velocity NUM", Float, "GCode speed for drawing (default: 40000.0)") {|s| OPTS[:speed] = s}
 
   x.on("-s", "--size NUM", Float, "Desired maximum dimension in mm (default: 100.0)") {|s| OPTS[:size] = s }
 
