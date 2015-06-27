@@ -160,7 +160,7 @@ def gcodify(svg_text, opts={})
   end.flatten
   preamble = ['G21 G90 G94 G92 X0 Y0 Z0']
   #epilogue = ["G0 Z0 F#{OPTS[:speed]}M30"]
-  epilogue = ["M3"]
+  epilogue = ["G1 X0 Y0 F#{OPTS[:speed]}", "M3"]
   gcodes = segments.map do |segment|
     if segment.is_a? Point
       "G1 X#{(scale * ((segment.x - x0) - 0.5 * width) * -1).round(2)} Y#{(scale * ((segment.y - y0) - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)} F#{OPTS[:speed]}"
@@ -183,7 +183,7 @@ def gcodify(svg_text, opts={})
   preamble + gcodes + epilogue
 end
 
-OPTS = {size: 100.0, speed: 40000.0, flip: true, segment_length: 1.5, output_directory: '.'}
+OPTS = {size: 95.0, speed: 40000.0, flip: true, segment_length: 1.5, output_directory: '.'}
 op = OptionParser.new do |x|
   x.banner = 'rsvg-gcodifier <options> <files>'
   x.separator ''
