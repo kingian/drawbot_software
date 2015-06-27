@@ -160,7 +160,7 @@ def gcodify(svg_text, opts={})
   end.flatten
   preamble = ['G21 G90 G94 G92 X0 Y0 Z0']
   #epilogue = ["G0 Z0 F#{OPTS[:speed]}M30"]
-  epilogue = ["G1 X0 Y0 F#{OPTS[:speed]}", "M3"]
+  epilogue = ["M3", "G1 X0 Y0 F#{OPTS[:speed]}"]
   gcodes = segments.map do |segment|
     if segment.is_a? Point
       "G1 X#{(scale * ((segment.x - x0) - 0.5 * width) * -1).round(2)} Y#{(scale * ((segment.y - y0) - 0.5 * height) * (OPTS[:flip] ? -1 : 1)).round(2)} F#{OPTS[:speed]}"
