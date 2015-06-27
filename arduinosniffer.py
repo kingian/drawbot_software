@@ -13,7 +13,8 @@ class ConnectionError(Exception):
 # most OS X machines
 def findArduinoName():
     for file in os.listdir('/dev/'):
-        if fnmatch.fnmatch(file, 'tty.usbmodem*'):
+        #if fnmatch.fnmatch(file, 'tty.usbmodem*'):
+        if fnmatch.fnmatch(file, 'ttyACM*'):
         # Debug line, since the usb bluetooth files seem to always be there
         #if fnmatch.fnmatch(file, 'tty.Blue*'):
             return '/dev/' + file

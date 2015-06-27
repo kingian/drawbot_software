@@ -13,10 +13,10 @@ LEFT = 275 # right
 RIGHT = 261 # Numpad [5]
 START = 92 # \
 GRID = [
-    [92, 122, 99, 46, 296],
-    [59, 113, 102, 121, 270],
+    [92, 122, 99, 46, 19],
+    [112, 113, 101, 111, 270],
     [45, 96, 283, 289, 278],
-    [111, 97, 115, 105, 271],
+    [59, 97, 100, 108, 271],
     [48, 49, 51, 57, 279]
 ]
 
@@ -32,9 +32,10 @@ for i, key in enumerate(STAMPS):
 
 running = 1
 pygame.init()
-screen = pygame.display.set_mode((320, 200))
+screen = pygame.display.set_mode((640, 480))
+pygame.display.set_caption("Drawbot!")
 
-font = pygame.font.SysFont("monospace", 15)
+font = pygame.font.SysFont("monospace", 24)
 
 # render text
 d = Drawbot()
@@ -110,7 +111,7 @@ def message(text):
         screen.blit(font.render(line, 1, (0,0,0)), (0, message_y))
         message_y += 15
 
-center = True
+center = False
 while running:
     message_y = 0
     screen.fill((255, 255, 255))
@@ -133,7 +134,7 @@ while running:
                 center = False
                 d.queue("G1 X350 Y350 F10000")
             message("MPos:{}\nWPos:{}\nState:{}\nQsize={}".format(d._machine_position, d._work_position, d._state, d.send_queue.qsize()))
-            if d.is_idle() or d.is_jogging():
+            if False and d.is_idle() or d.is_jogging():
                 x, y = 0, 0
                 if (keys[UP] or keys[K_UP]):
                     y = 1
@@ -145,7 +146,7 @@ while running:
                     x = 1
                 d.jog((x, y))
 
-            if event.type == pygame.KEYDOWN and (event.key == 92 or event.key == K_SPACE):
+            if False and event.type == pygame.KEYDOWN and (event.key == 92 or event.key == K_SPACE):
                 print event.key
                 if d.is_pen_down():
                     d.pen_up()
@@ -174,5 +175,5 @@ while running:
     sleep(0.01)
     pygame.display.flip()
 
-d.queue('G1 X0 Y0 Z0 F10000')
-d.wait_for_idle()
+#d.queue('G1 X0 Y0 Z0 F10000')
+#d.wait_for_idle()
